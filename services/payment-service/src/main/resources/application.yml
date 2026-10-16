@@ -1,0 +1,36 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: payment-service
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/shopkart}
+    username: ${SPRING_DATASOURCE_USERNAME:shopkart}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 15
+      connection-test-query: SELECT 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+payment:
+  decline-above-amount: ${DECLINE_ABOVE_AMOUNT:100000.00}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

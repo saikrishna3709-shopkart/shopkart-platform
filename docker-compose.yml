@@ -1,0 +1,114 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shopkart
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: shopkart
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopkart -d shopkart"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  catalog-service:
+    build: ./services/catalog-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
+      SPRING_DATASOURCE_USERNAME: shopkart
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  inventory-service:
+    build: ./services/inventory-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
+      SPRING_DATASOURCE_USERNAME: shopkart
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  payment-service:
+    build: ./services/payment-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
+      SPRING_DATASOURCE_USERNAME: shopkart
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  notification-service:
+    build: ./services/notification-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
+      SPRING_DATASOURCE_USERNAME: shopkart
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8005:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  order-service:
+    build: ./services/order-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
+      SPRING_DATASOURCE_USERNAME: shopkart
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      CATALOG_SERVICE_URL: http://catalog-service:8000
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+    ports:
+      - "8004:8000"
+    depends_on:
+      catalog-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      # Notifications are best-effort, so this is a start-order hint only —
+      # order-service stays up if notification-service is down.
+      notification-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

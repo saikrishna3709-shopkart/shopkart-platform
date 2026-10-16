@@ -1,0 +1,7 @@
+@Library('shopkart-shared') _
+
+// Handles money, so it gets the strictest coverage gate in the platform.
+shopkartPipeline(
+    service: 'payment-service',
+    coverageFloor: 90
+)

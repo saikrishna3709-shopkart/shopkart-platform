@@ -1,0 +1,7 @@
+@Library('shopkart-shared') _
+
+// Every service Jenkinsfile is this short. The stages live in the shared library,
+// so improving the pipeline improves all services at once.
+shopkartPipeline(
+    service: 'catalog-service'
+)

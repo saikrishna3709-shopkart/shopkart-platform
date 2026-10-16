@@ -1,0 +1,42 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/shopkart}
+    username: ${SPRING_DATASOURCE_USERNAME:shopkart}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 15
+      connection-test-query: SELECT 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+services:
+  catalog-url: ${CATALOG_SERVICE_URL:http://localhost:8001}
+  inventory-url: ${INVENTORY_SERVICE_URL:http://localhost:8002}
+  payment-url: ${PAYMENT_SERVICE_URL:http://localhost:8003}
+  notification-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8005}
+  downstream-timeout: ${DOWNSTREAM_TIMEOUT_SECONDS:3}s
+  notification-timeout: ${NOTIFICATION_TIMEOUT_SECONDS:2}s
+
+order:
+  max-items: ${MAX_ITEMS_PER_ORDER:20}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

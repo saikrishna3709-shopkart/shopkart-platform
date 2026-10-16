@@ -1,0 +1,34 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/shopkart}
+    username: ${SPRING_DATASOURCE_USERNAME:shopkart}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 15
+      connection-test-query: SELECT 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+notification:
+  max-delivery-attempts: ${MAX_DELIVERY_ATTEMPTS:4}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

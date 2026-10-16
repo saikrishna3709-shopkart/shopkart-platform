@@ -1,0 +1,32 @@
+# Secrets and local config — never commit the real .env
+.env
+*.pem
+*.ppk
+*.key
+*.p12
+id_rsa*
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Java / Maven
+target/
+.m2/
+*.class
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

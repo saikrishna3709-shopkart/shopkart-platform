@@ -1,0 +1,8 @@
+@Library('shopkart-shared') _
+
+// Holds the compare-and-swap stock logic, so the coverage bar is set higher
+// than the default: an untested path here means overselling.
+shopkartPipeline(
+    service: 'inventory-service',
+    coverageFloor: 88
+)
