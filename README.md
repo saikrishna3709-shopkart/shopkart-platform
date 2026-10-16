@@ -26,6 +26,7 @@ not a claim that the system has served real production traffic.
 - `order-service`: idempotent checkout and compensating transactions
 - `payment-service`: deterministic payment authorization and decline paths
 - `notification-service`: best-effort delivery with retry processing
+- `storefront-service`: responsive product catalog, persistent cart, and demo checkout
 
 ## Delivery Platform
 
@@ -37,13 +38,13 @@ not a claim that the system has served real production traffic.
 
 ## Verified Baseline
 
-- 94 Java service tests pass at their Jenkins coverage thresholds.
-- Current JaCoCo line coverage ranges from 88% to 98% across the five services.
+- 101 Java service tests pass at their Jenkins coverage thresholds.
+- Current JaCoCo line coverage ranges from 88% to 98% across the six services.
 - Checkout derives a stable saga ID from the idempotency key; inventory and
 	payment reuse it to absorb retries across timeouts and concurrent pods.
 - Notification rows claim their unique event/channel keys before provider calls,
 	preventing concurrent request replays from sending duplicate messages.
-- All five Helm releases lint, render, and pass strict Kubernetes schema checks.
+- All six Helm releases lint, render, and pass strict Kubernetes schema checks.
 - Terraform bootstrap and development stacks format and validate.
 - ArgoCD manages service releases and environment-level platform resources.
 - Public ingress paths are covered by deployment smoke tests.
@@ -66,11 +67,21 @@ Run one service locally with:
 mvn -f .\services\catalog-service\pom.xml clean verify
 ```
 
-Run all five service builds through the Maven reactor with:
+Run all six service builds through the Maven reactor with:
 
 ```powershell
 mvn clean verify
 ```
+
+With Docker available, launch the complete local website and backend stack with:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+Then open `http://localhost:8080`. The seeded catalog can be searched and added
+to a persistent cart; checkout uses the deterministic mock payment token.
 
 ## AWS Deployment
 

@@ -1,0 +1,5 @@
+@Library('shopkart-shared') _
+
+shopkartPipeline(
+    service: 'storefront-service'
+)

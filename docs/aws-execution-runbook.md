@@ -107,7 +107,7 @@ RDS charges continue while the environment is running.
 - Apply the Terraform state bootstrap stack once.
 - Initialize the development stack with the encrypted S3 backend and locking.
 - Review `terraform plan`; never run an unreviewed auto-approve.
-- Apply VPC, EKS `1.36`, five ECR repositories, RDS, IAM, logs, and management
+- Apply VPC, EKS `1.36`, six ECR repositories, RDS, IAM, logs, and management
   resources.
 - Record outputs without exposing credentials.
 
@@ -146,7 +146,8 @@ Nexus stores the service JAR and proxies dependencies through
 
 ### Phase 6: Production-Like Tests
 
-- Execute the complete catalog, inventory, checkout, payment, and notification flow.
+- Open the storefront, add products to the cart, and execute the complete catalog,
+  inventory, checkout, mock payment, and notification flow.
 - Repeat an idempotency key and prove no duplicate payment or stock reduction.
 - Run load and demonstrate HPA scaling.
 - Deploy a bad revision and demonstrate health failure plus rollback.
@@ -165,11 +166,11 @@ Nexus stores the service JAR and proxies dependencies through
 
 ## Definition of Done
 
-- All five service pipelines pass, publish JARs to Nexus, and publish immutable
+- All six service pipelines pass, publish JARs to Nexus, and publish immutable
   Git-SHA images to ECR.
 - ArgoCD, not Jenkins, changes EKS workloads.
 - No credentials or mutable image tags exist in Git or running manifests.
-- ALB smoke tests pass for catalog and order routes.
+- ALB smoke tests pass for the storefront, catalog, and order routes.
 - RDS is private and encrypted; backups are enabled for the demonstration window.
 - Alerts fire for service unavailability and application failure conditions.
 - Scaling, security-gate failure, drift correction, dependency failure, and

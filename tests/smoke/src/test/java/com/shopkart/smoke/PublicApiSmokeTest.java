@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 
 class PublicApiSmokeTest {
 
@@ -40,6 +41,23 @@ class PublicApiSmokeTest {
         assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith("application/json"),
                 () -> path + " did not return application/json");
         objectMapper.readTree(response.body());
+    }
+
+    @Test
+    void storefrontLoadsTheShoppingExperience() throws Exception {
+        String baseUrl = requiredProperty("shopkart.baseUrl").replaceAll("/+$", "");
+        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/"))
+                .header("Accept", "text/html")
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith("text/html"));
+        assertTrue(response.body().contains("id=\"product-grid\""));
+        assertTrue(response.body().contains("/app.js"));
     }
 
     static Stream<String> publicRoutes() {

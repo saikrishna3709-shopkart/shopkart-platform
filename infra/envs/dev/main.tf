@@ -14,6 +14,7 @@ locals {
     "notification-service",
     "order-service",
     "payment-service",
+    "storefront-service",
   ]
 }
 

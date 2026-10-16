@@ -1,0 +1,25 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: storefront-service
+
+storefront:
+  catalog-url: ${CATALOG_SERVICE_URL:http://localhost:8001}
+  order-url: ${ORDER_SERVICE_URL:http://localhost:8004}
+  downstream-timeout: ${DOWNSTREAM_TIMEOUT_SECONDS:3}s
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

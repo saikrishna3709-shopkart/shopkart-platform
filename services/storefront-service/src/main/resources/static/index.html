@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f5">
+  <meta name="api-base" content="/api">
+  <title>ShopKart | Everyday goods, chosen well</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/lucide.min.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#catalog">Skip to products</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/" aria-label="ShopKart home">
+        <span class="brand-mark" aria-hidden="true">SK</span>
+        <span>ShopKart</span>
+      </a>
+
+      <label class="search-box" for="product-search">
+        <i data-lucide="search" aria-hidden="true"></i>
+        <input id="product-search" type="search" autocomplete="off" placeholder="Search products and brands">
+        <kbd aria-hidden="true">/</kbd>
+      </label>
+
+      <button class="cart-trigger" id="cart-trigger" type="button" aria-controls="cart-drawer" aria-expanded="false">
+        <i data-lucide="shopping-bag" aria-hidden="true"></i>
+        <span class="cart-trigger-label">Cart</span>
+        <span class="cart-count" id="cart-count" aria-label="0 items">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="catalog">
+    <section class="catalog-heading" aria-labelledby="catalog-title">
+      <div>
+        <p class="eyebrow">The everyday edit</p>
+        <h1 id="catalog-title">Good things, chosen well.</h1>
+        <p class="catalog-copy">Considered essentials for work, weekends, and everything between.</p>
+      </div>
+      <div class="catalog-meta" aria-live="polite">
+        <strong id="product-count">0</strong>
+        <span>products</span>
+      </div>
+    </section>
+
+    <nav class="category-bar" id="category-bar" aria-label="Product categories">
+      <button class="category-option is-active" type="button" data-category="all" aria-pressed="true">All</button>
+    </nav>
+
+    <section class="catalog-status" id="catalog-status" hidden>
+      <div>
+        <strong id="status-title">Catalog unavailable</strong>
+        <p id="status-message">We could not load products right now.</p>
+      </div>
+      <button class="secondary-button" id="retry-catalog" type="button">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        Retry
+      </button>
+    </section>
+
+    <section class="product-grid" id="product-grid" aria-label="Products" aria-live="polite"></section>
+
+    <section class="empty-results" id="empty-results" hidden>
+      <i data-lucide="search-x" aria-hidden="true"></i>
+      <h2>No matching products</h2>
+      <p>Try another search or category.</p>
+      <button class="text-button" id="clear-filters" type="button">Clear filters</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand footer-brand" href="/" aria-label="ShopKart home">
+      <span class="brand-mark" aria-hidden="true">SK</span>
+      <span>ShopKart</span>
+    </a>
+    <p>Everyday goods, thoughtfully selected.</p>
+    <span>Secure demo checkout</span>
+  </footer>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="cart-drawer" id="cart-drawer" aria-labelledby="cart-title" aria-hidden="true">
+    <header class="drawer-header">
+      <div>
+        <p class="eyebrow">Your selection</p>
+        <h2 id="cart-title">Shopping cart</h2>
+      </div>
+      <button class="icon-button" id="close-cart" type="button" aria-label="Close cart">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="cart-body" id="cart-body">
+      <div class="empty-cart" id="empty-cart">
+        <span class="empty-cart-icon"><i data-lucide="shopping-basket" aria-hidden="true"></i></span>
+        <h3>Your cart is empty</h3>
+        <p>A few good picks will look great here.</p>
+        <button class="secondary-button" id="continue-shopping" type="button">Browse products</button>
+      </div>
+      <div class="cart-items" id="cart-items"></div>
+    </div>
+
+    <section class="checkout-form-wrap" id="checkout-form-wrap" hidden>
+      <button class="text-button back-button" id="back-to-cart" type="button">
+        <i data-lucide="arrow-left" aria-hidden="true"></i>
+        Back to cart
+      </button>
+      <h3>Contact details</h3>
+      <form id="checkout-form">
+        <label>
+          Email
+          <input type="email" id="checkout-email" name="email" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+        <label>
+          Phone <span>Optional</span>
+          <input type="tel" id="checkout-phone" name="phone" autocomplete="tel" placeholder="+91 98765 43210">
+        </label>
+        <button class="primary-button place-order-button" id="place-order" type="submit">
+          <i data-lucide="package-check" aria-hidden="true"></i>
+          Place demo order
+        </button>
+        <p class="checkout-error" id="checkout-error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section class="order-success" id="order-success" hidden aria-live="polite">
+      <span class="success-icon"><i data-lucide="check" aria-hidden="true"></i></span>
+      <p class="eyebrow">Order confirmed</p>
+      <h3>It's officially yours.</h3>
+      <p id="success-message">We have received your demo order.</p>
+      <button class="primary-button" id="finish-order" type="button">Continue shopping</button>
+    </section>
+
+    <footer class="cart-summary" id="cart-summary" hidden>
+      <div class="summary-line">
+        <span>Subtotal</span>
+        <strong id="cart-subtotal">&#8377;0</strong>
+      </div>
+      <p>Taxes and delivery calculated at checkout.</p>
+      <button class="primary-button checkout-button" id="checkout-button" type="button">
+        Checkout
+        <i data-lucide="arrow-right" aria-hidden="true"></i>
+      </button>
+    </footer>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <i data-lucide="check-circle-2" aria-hidden="true"></i>
+    <span id="toast-message">Added to cart</span>
+  </div>
+</body>
+</html>
