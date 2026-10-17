@@ -77,7 +77,7 @@ variable "api_allowed_cidrs" {
 variable "jenkins_instance_type" {
   description = "Instance type for Jenkins, SonarQube, Nexus, and administration tooling."
   type        = string
-  default     = "m7i-flex.xlarge"
+  default     = "m7i-flex.large"
 }
 
 variable "jenkins_root_volume_size" {

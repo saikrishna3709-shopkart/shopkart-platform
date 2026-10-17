@@ -69,32 +69,23 @@ if ($Action -eq 'status') {
     return
 }
 
-$toolsDirectory = Join-Path $env:LOCALAPPDATA 'Programs/ShopKartTools'
 if ($Maven -eq 'mvn' -and -not (Get-Command $Maven -ErrorAction SilentlyContinue)) {
-    $installedMaven = Get-ChildItem (Join-Path $toolsDirectory 'apache-maven-*/bin/mvn.cmd') -ErrorAction SilentlyContinue |
-        Sort-Object FullName -Descending | Select-Object -First 1
-    if ($installedMaven) {
-        $Maven = $installedMaven.FullName
+    foreach ($mavenHome in @($env:MAVEN_HOME, $env:M2_HOME)) {
+        if ($mavenHome -and (Test-Path (Join-Path $mavenHome 'bin/mvn.cmd'))) {
+            $Maven = Join-Path $mavenHome 'bin/mvn.cmd'
+            break
+        }
     }
 }
 if ($Java -eq 'java' -and -not (Get-Command $Java -ErrorAction SilentlyContinue)) {
     if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin/java.exe'))) {
         $Java = Join-Path $env:JAVA_HOME 'bin/java.exe'
-    } else {
-        $installedJava = Get-ChildItem (Join-Path $toolsDirectory 'temurin-21/*/bin/java.exe') -ErrorAction SilentlyContinue |
-            Sort-Object FullName -Descending | Select-Object -First 1
-        if ($installedJava) {
-            $Java = $installedJava.FullName
-        }
     }
 }
 $null = Get-Command $Maven -ErrorAction Stop
 $javaCommand = (Get-Command $Java -ErrorAction Stop).Source
 $env:JAVA_HOME = Split-Path (Split-Path $javaCommand -Parent) -Parent
 if ($Action -eq 'validate') {
-    if ($Helm -eq 'helm' -and -not (Get-Command $Helm -ErrorAction SilentlyContinue)) {
-        $Helm = Join-Path $env:LOCALAPPDATA 'helm/windows-amd64/helm.exe'
-    }
     $helmCommand = (Get-Command $Helm -ErrorAction Stop).Source
     $manifests = (Resolve-Path (Join-Path $root '../shopkart-manifests')).Path
     & $Maven --batch-mode --no-transfer-progress -f (Join-Path $root 'tests/smoke/pom.xml') test `

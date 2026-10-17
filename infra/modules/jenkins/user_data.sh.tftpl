@@ -2,7 +2,8 @@
 set -euo pipefail
 
 dnf update -y
-dnf install -y curl docker fontconfig git java-21-amazon-corretto-headless jq openssl unzip wget
+# --allowerasing: AL2023 ships curl-minimal, which conflicts with the full curl package.
+dnf install -y --allowerasing curl docker fontconfig git java-21-amazon-corretto-headless jq openssl unzip wget
 
 cat >/etc/yum.repos.d/trivy.repo <<'EOF'
 [trivy]
@@ -24,6 +25,18 @@ if ! command -v aws >/dev/null 2>&1; then
 fi
 aws --version
 trivy --version
+
+# Break-glass cluster access from inside the VPC. The delivery pipeline still never
+# runs kubectl — promote.sh only commits to the manifests repo.
+curl --fail --location --retry 3 \
+  "https://dl.k8s.io/release/v1.36.0/bin/linux/amd64/kubectl" --output /usr/local/bin/kubectl
+chmod 0755 /usr/local/bin/kubectl
+curl --fail --location --retry 3 https://get.helm.sh/helm-v3.16.3-linux-amd64.tar.gz --output /tmp/helm.tgz
+tar -xzf /tmp/helm.tgz -C /tmp
+install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+rm -rf /tmp/helm.tgz /tmp/linux-amd64
+kubectl version --client
+helm version --short
 
 systemctl enable --now amazon-ssm-agent
 systemctl enable --now docker

@@ -10,9 +10,33 @@ not a claim that the system has served real production traffic.
 - GitOps manifests: https://github.com/saikrishna3709-shopkart/shopkart-manifests
 - Jenkins shared library: https://github.com/saikrishna3709-shopkart/shopkart-jenkins-library
 
+## Prerequisites
+
+Install these and make sure they are on your `PATH`:
+
+| Tool | Version | Needed for |
+| --- | --- | --- |
+| JDK | 21 | building and running the services |
+| Maven | 3.9+ | build lifecycle and tests |
+| Docker | 24+ | container builds and the Compose demo |
+| Helm | 3.16+ | rendering and validating the chart |
+| Terraform | 1.9+ | provisioning AWS |
+| AWS CLI | v2 | authenticating to AWS |
+
+Nothing in this project depends on a specific install location. If `java` is not
+on your `PATH`, `JAVA_HOME` is used instead.
+
 ## Local Demo
 
-From this repository in Windows PowerShell, with Java 21 and Maven installed:
+The cross-platform path is Docker Compose, which works on Linux, macOS, and Windows:
+
+```bash
+docker compose up --build
+```
+
+On Windows, `ci/scripts/demo.ps1` is an optional convenience wrapper that runs the
+services directly from packaged JARs with an isolated H2 database, so Docker is
+not required:
 
 ```powershell
 .\ci\scripts\demo.ps1 -Action start
@@ -21,12 +45,35 @@ From this repository in Windows PowerShell, with Java 21 and Maven installed:
 The command builds and tests all six services, starts an isolated H2-backed demo,
 and checks revision reporting, checkout, idempotency, and payment decline.
 Open `http://localhost:8088`. Existing services on port 8080 are not changed.
-The launcher also recognizes the local `ShopKartTools` Java and Maven installs.
 
 Use `-Action status`, `-Action test`, or `-Action stop` to manage this demo.
 Use `-Action validate` to check the sibling GitOps and Jenkins repositories with Helm.
 See [the demo walkthrough](docs/aws-execution-runbook.md#local-demo) for
 presentation steps, validation commands, limitations, and the separate AWS gate.
+
+## Running This in Your Own AWS Account
+
+This project is account-agnostic. No AWS account ID, IP address, or state bucket
+name is committed. To run it yourself:
+
+1. Fork all three repositories.
+2. `cp infra/envs/dev/terraform.tfvars.example infra/envs/dev/terraform.tfvars`
+   and set `owner` and `api_allowed_cidrs` to your own public IP (`/32`).
+3. `cp infra/envs/dev/backend.hcl.example infra/envs/dev/backend.hcl` and choose a
+   globally unique `bucket` name. Both files are gitignored on purpose.
+4. Apply `infra/bootstrap` once to create the state bucket and lock table, then
+   `terraform init -backend-config=backend.hcl` in `infra/envs/dev`.
+5. In your fork of `shopkart-manifests`, substitute the `__ECR_REGISTRY__` and
+   `__MANIFESTS_REPO_URL__` tokens when you apply the ArgoCD manifests. See that
+   repository's README.
+
+### Known constraints
+
+- `node_max_size` defaults to `2` because a new AWS account has a 5 vCPU Spot
+  quota. Raise the EC2 quota before increasing it.
+- The EKS API endpoint must be reachable from wherever you run Terraform. Some
+  corporate networks intercept `*.eks.amazonaws.com`, which makes the Helm
+  provider fail with `Kubernetes cluster unreachable`.
 
 ## Application Stack
 

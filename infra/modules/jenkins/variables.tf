@@ -42,7 +42,7 @@ variable "ecr_repository_arns" {
 variable "instance_type" {
   description = "EC2 instance type for Jenkins and administration tooling."
   type        = string
-  default     = "m7i-flex.xlarge"
+  default     = "m7i-flex.large"
 }
 
 variable "root_volume_size" {

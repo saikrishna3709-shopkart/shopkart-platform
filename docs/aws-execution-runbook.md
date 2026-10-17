@@ -36,8 +36,8 @@ From `shopkart-platform` in Windows PowerShell:
 .\ci\scripts\demo.ps1 -Action start
 ```
 
-Java 21 and Maven are required. The script uses tools on PATH or the existing
-`%LOCALAPPDATA%/Programs/ShopKartTools` installations. Custom installations can
+Java 21 and Maven are required. The script uses whatever is on `PATH`, falling
+back to `JAVA_HOME` for Java. Custom installations can
 be passed with `-Java` and `-Maven`. It builds all six services with their existing
 test and coverage gates before launching them. `-SkipBuild` reuses already
 verified JARs; do not use it after editing service code.

@@ -13,6 +13,6 @@ node_min_size       = 2
 # so raise the EC2 Spot quota before setting this above 2.
 node_max_size       = 2
 
-jenkins_instance_type    = "m7i-flex.xlarge"
+jenkins_instance_type    = "m7i-flex.large"
 jenkins_root_volume_size = 50
 db_instance_class        = "db.t4g.micro"
