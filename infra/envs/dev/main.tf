@@ -40,6 +40,21 @@ module "ecr" {
   tags = local.tags
 }
 
+module "jenkins" {
+  source = "../../modules/jenkins"
+
+  name                = local.name
+  region              = var.region
+  vpc_id              = module.vpc.vpc_id
+  subnet_id           = module.vpc.public_subnet_ids[0]
+  admin_cidrs         = var.api_allowed_cidrs
+  ecr_repository_arns = values(module.ecr.repository_arns)
+  instance_type       = var.jenkins_instance_type
+  root_volume_size    = var.jenkins_root_volume_size
+
+  tags = local.tags
+}
+
 module "eks" {
   source = "../../modules/eks"
 
@@ -53,8 +68,14 @@ module "eks" {
   node_desired_size  = var.node_desired_size
   node_min_size      = var.node_min_size
   node_max_size      = var.node_max_size
+  admin_principal_arns = {
+    jenkins = module.jenkins.role_arn
+  }
 
-  public_access_cidrs = var.api_allowed_cidrs
+  public_access_cidrs = distinct(concat(
+    var.api_allowed_cidrs,
+    ["${module.jenkins.public_ip}/32"],
+  ))
 
   tags = local.tags
 }
@@ -75,4 +96,20 @@ module "rds" {
   deletion_protection   = false
 
   tags = local.tags
+}
+
+module "addons" {
+  source = "../../modules/addons"
+
+  name                      = local.name
+  region                    = var.region
+  vpc_id                    = module.vpc.vpc_id
+  cluster_name              = module.eks.cluster_name
+  oidc_provider_arn         = module.eks.oidc_provider_arn
+  oidc_provider_url         = module.eks.oidc_provider_url
+  secretsmanager_secret_arn = module.rds.secret_arn
+
+  tags = local.tags
+
+  depends_on = [module.eks]
 }

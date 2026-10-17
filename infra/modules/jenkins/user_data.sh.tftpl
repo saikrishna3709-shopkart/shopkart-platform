@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dnf update -y
+dnf install -y curl docker fontconfig git java-21-amazon-corretto-headless jq openssl unzip wget
+
+cat >/etc/yum.repos.d/trivy.repo <<'EOF'
+[trivy]
+name=Trivy repository
+baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://aquasecurity.github.io/trivy-repo/rpm/public.key
+EOF
+dnf install -y trivy
+
+if ! command -v aws >/dev/null 2>&1; then
+  aws_workdir="$(mktemp -d)"
+  curl --fail --location --retry 3 https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
+    --output "$aws_workdir/aws.zip"
+  unzip -q "$aws_workdir/aws.zip" -d "$aws_workdir"
+  "$aws_workdir/aws/install" --update
+  rm -rf "$aws_workdir"
+fi
+aws --version
+trivy --version
+
+systemctl enable --now amazon-ssm-agent
+systemctl enable --now docker
+
+install -d -m 0755 /usr/local/lib/docker/cli-plugins
+curl --fail --location --retry 3 \
+  https://github.com/docker/compose/releases/download/v5.6.0/docker-compose-linux-x86_64 \
+  --output /usr/local/lib/docker/cli-plugins/docker-compose
+chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+
+wget -q -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/rpm-stable/jenkins.repo
+rpm --import https://pkg.jenkins.io/rpm-stable/jenkins.io-2023.key
+dnf install -y jenkins
+
+usermod -aG docker jenkins
+systemctl enable --now jenkins
+systemctl restart jenkins
+
+cat >/etc/sysctl.d/99-shopkart-tooling.conf <<'EOF'
+vm.max_map_count=524288
+fs.file-max=131072
+EOF
+sysctl --system
+
+install -d -m 0700 /opt/shopkart/tooling
+printf '%s' '${tooling_compose}' | base64 --decode > /opt/shopkart/tooling/compose.yml
+chmod 0600 /opt/shopkart/tooling/compose.yml
+
+if [[ ! -f /opt/shopkart/tooling/.env ]]; then
+  umask 077
+  printf 'SONAR_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)" > /opt/shopkart/tooling/.env
+fi
+
+cd /opt/shopkart/tooling
+docker compose --env-file .env up --detach
+
+printf '%s\n' 'ShopKart administration host bootstrap completed.' > /opt/shopkart/bootstrap-status

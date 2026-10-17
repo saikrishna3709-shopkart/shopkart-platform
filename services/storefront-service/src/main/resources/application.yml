@@ -8,13 +8,28 @@ spring:
 storefront:
   catalog-url: ${CATALOG_SERVICE_URL:http://localhost:8001}
   order-url: ${ORDER_SERVICE_URL:http://localhost:8004}
+  inventory-url: ${INVENTORY_SERVICE_URL:http://localhost:8002}
+  payment-url: ${PAYMENT_SERVICE_URL:http://localhost:8003}
+  notification-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8005}
   downstream-timeout: ${DOWNSTREAM_TIMEOUT_SECONDS:3}s
+
+info:
+  app:
+    service: ${spring.application.name}
+    revision: ${APP_REVISION:local}
 
 logging:
   level:
     root: ${LOG_LEVEL:INFO}
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true
   metrics:
     distribution:
       percentiles-histogram:

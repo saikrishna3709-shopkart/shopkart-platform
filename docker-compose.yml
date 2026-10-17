@@ -16,6 +16,7 @@ services:
   catalog-service:
     build: ./services/catalog-service
     environment:
+      APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -33,6 +34,7 @@ services:
   inventory-service:
     build: ./services/inventory-service
     environment:
+      APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -50,6 +52,7 @@ services:
   payment-service:
     build: ./services/payment-service
     environment:
+      APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -67,6 +70,7 @@ services:
   notification-service:
     build: ./services/notification-service
     environment:
+      APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -84,6 +88,7 @@ services:
   order-service:
     build: ./services/order-service
     environment:
+      APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -113,8 +118,12 @@ services:
   storefront-service:
     build: ./services/storefront-service
     environment:
+      APP_REVISION: ${APP_REVISION:-local}
       CATALOG_SERVICE_URL: http://catalog-service:8000
       ORDER_SERVICE_URL: http://order-service:8000
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
     ports:
       - "8080:8000"
     depends_on:

@@ -41,12 +41,40 @@ resource "aws_eks_cluster" "this" {
   # Control-plane audit trail; without this, API-server activity is invisible.
   enabled_cluster_log_types = ["api", "audit", "authenticator"]
 
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
   tags = var.tags
 
   depends_on = [
     aws_iam_role_policy_attachment.cluster,
     aws_cloudwatch_log_group.cluster,
   ]
+}
+
+resource "aws_eks_access_entry" "admin" {
+  for_each = var.admin_principal_arns
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value
+  type          = "STANDARD"
+  tags          = var.tags
+}
+
+resource "aws_eks_access_policy_association" "admin" {
+  for_each = var.admin_principal_arns
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.admin]
 }
 
 # ---------------------------------------------------------------------------
@@ -128,6 +156,7 @@ resource "aws_eks_addon" "this" {
 
   cluster_name                = aws_eks_cluster.this.name
   addon_name                  = each.value
+  configuration_values        = lookup(var.cluster_addon_configurations, each.value, null)
   resolve_conflicts_on_update = "OVERWRITE"
   tags                        = var.tags
 

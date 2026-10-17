@@ -2,13 +2,17 @@ region             = "us-east-1"
 owner              = "YOUR-NAME"
 kubernetes_version = "1.36"
 
-# Replace with the public IPv4 address of the EC2 administration/Jenkins host.
-# Keep /32 so only that host can reach the public EKS API endpoint.
+# Replace with your current public IPv4 address. Keep /32 so only your machine
+# can reach Jenkins, SonarQube, Nexus, and the public EKS API endpoint.
 api_allowed_cidrs = ["203.0.113.10/32"]
 
-node_instance_types = ["t3.medium"]
+node_instance_types = ["m7i-flex.large"]
 node_desired_size   = 2
 node_min_size       = 2
-node_max_size       = 4
+# A new account defaults to 5 Spot Standard vCPUs. Each m7i-flex.large is 2 vCPUs,
+# so raise the EC2 Spot quota before setting this above 2.
+node_max_size       = 2
 
-db_instance_class = "db.t4g.micro"
+jenkins_instance_type    = "m7i-flex.xlarge"
+jenkins_root_volume_size = 50
+db_instance_class        = "db.t4g.micro"

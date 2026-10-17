@@ -2,14 +2,17 @@ package com.shopkart.storefront;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -22,10 +25,36 @@ public class ApiProxyController {
 
     private final RestClient restClient;
     private final StorefrontProperties properties;
+    private final String revision;
 
-    public ApiProxyController(RestClient restClient, StorefrontProperties properties) {
+    public ApiProxyController(RestClient restClient, StorefrontProperties properties,
+            @Value("${info.app.revision}") String revision) {
         this.restClient = restClient;
         this.properties = properties;
+        this.revision = revision;
+    }
+
+    @GetMapping("/api/deployments/{service}")
+    public ResponseEntity<?> deployment(@PathVariable("service") String service) {
+        if ("storefront-service".equals(service)) {
+            return ResponseEntity.ok(Map.of("app", Map.of("service", service, "revision", revision)));
+        }
+        String target = switch (service) {
+            case "catalog-service" -> properties.catalogUrl();
+            case "order-service" -> properties.orderUrl();
+            case "inventory-service" -> properties.inventoryUrl();
+            case "payment-service" -> properties.paymentUrl();
+            case "notification-service" -> properties.notificationUrl();
+            default -> null;
+        };
+        if (target == null) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            return exchange(restClient.get().uri(base(target) + "/actuator/info"));
+        } catch (RestClientException exception) {
+            return unavailable("deployment information unavailable");
+        }
     }
 
     @GetMapping("/api/products")
@@ -36,6 +65,17 @@ public class ApiProxyController {
             return exchange(restClient.get().uri(target));
         } catch (RestClientException exception) {
             return unavailable("catalog unavailable");
+        }
+    }
+
+    @GetMapping("/api/orders")
+    public ResponseEntity<byte[]> orders(HttpServletRequest request) {
+        String query = request.getQueryString();
+        String target = base(properties.orderUrl()) + "/orders" + (query == null ? "" : "?" + query);
+        try {
+            return exchange(restClient.get().uri(target));
+        } catch (RestClientException exception) {
+            return unavailable("orders unavailable");
         }
     }
 

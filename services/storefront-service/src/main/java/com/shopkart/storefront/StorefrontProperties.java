@@ -8,5 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record StorefrontProperties(
         String catalogUrl,
         String orderUrl,
+        String inventoryUrl,
+        String paymentUrl,
+        String notificationUrl,
         Duration downstreamTimeout) {
 }

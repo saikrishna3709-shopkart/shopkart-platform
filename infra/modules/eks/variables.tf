@@ -42,7 +42,7 @@ variable "public_access_cidrs" {
 variable "node_instance_types" {
   description = "Instance types for the managed node group."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["m7i-flex.large"]
 }
 
 variable "node_capacity_type" {
@@ -80,10 +80,24 @@ variable "cluster_addons" {
   default     = ["vpc-cni", "coredns", "kube-proxy"]
 }
 
+variable "cluster_addon_configurations" {
+  description = "JSON configuration values keyed by EKS managed add-on name."
+  type        = map(string)
+  default = {
+    vpc-cni = "{\"enableNetworkPolicy\":\"true\"}"
+  }
+}
+
 variable "log_retention_days" {
   description = "CloudWatch retention for control plane logs."
   type        = number
   default     = 7
+}
+
+variable "admin_principal_arns" {
+  description = "IAM principal ARNs keyed by stable names known at plan time, granted cluster-admin through EKS access entries."
+  type        = map(string)
+  default     = {}
 }
 
 variable "tags" {

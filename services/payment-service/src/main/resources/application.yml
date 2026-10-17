@@ -25,7 +25,19 @@ logging:
   level:
     root: ${LOG_LEVEL:INFO}
 
+info:
+  app:
+    service: ${spring.application.name}
+    revision: ${APP_REVISION:local}
+
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true
   metrics:
     distribution:
       percentiles-histogram:

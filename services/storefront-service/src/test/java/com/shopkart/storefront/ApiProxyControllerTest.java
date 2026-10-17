@@ -15,6 +15,8 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -32,8 +34,56 @@ class ApiProxyControllerTest {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         StorefrontProperties properties = new StorefrontProperties(
-                "http://catalog", "http://orders", Duration.ofSeconds(3));
-        mockMvc = MockMvcBuilders.standaloneSetup(new ApiProxyController(builder.build(), properties)).build();
+                "http://catalog", "http://orders", "http://inventory", "http://payment",
+                "http://notification", Duration.ofSeconds(3));
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                new ApiProxyController(builder.build(), properties, "test-revision")).build();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "catalog-service,http://catalog",
+        "order-service,http://orders",
+        "inventory-service,http://inventory",
+        "payment-service,http://payment",
+        "notification-service,http://notification"
+    })
+    void proxiesOnlyKnownServiceRevisions(String service, String upstream) throws Exception {
+        String response = "{\"app\":{\"service\":\"" + service + "\",\"revision\":\"abc123def456\"}}";
+        server.expect(requestTo(upstream + "/actuator/info"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+
+        mockMvc.perform(get("/api/deployments/" + service))
+                .andExpect(status().isOk())
+                .andExpect(content().json(response));
+        server.verify();
+    }
+
+    @Test
+    void reportsTheStorefrontRevisionWithoutADownstreamCall() throws Exception {
+        mockMvc.perform(get("/api/deployments/storefront-service"))
+                .andExpect(status().isOk())
+                .andExpect(content().json(
+                        "{\"app\":{\"service\":\"storefront-service\",\"revision\":\"test-revision\"}}"));
+        server.verify();
+    }
+
+    @Test
+    void rejectsUnknownDeploymentTargets() throws Exception {
+        mockMvc.perform(get("/api/deployments/unknown-service"))
+                .andExpect(status().isNotFound());
+        server.verify();
+    }
+
+    @Test
+    void reportsUnavailableDeploymentInformation() throws Exception {
+        server.expect(requestTo("http://inventory/actuator/info"))
+                .andRespond(withException(new IOException("connection refused")));
+
+        mockMvc.perform(get("/api/deployments/inventory-service"))
+                .andExpect(status().isBadGateway());
+        server.verify();
     }
 
     @Test
@@ -48,6 +98,19 @@ class ApiProxyControllerTest {
                 .andExpect(content().json("[{\"sku\":\"SHOE-001\"}]"));
         server.verify();
     }
+
+        @Test
+        void proxiesOrderQueries() throws Exception {
+                server.expect(requestTo("http://orders/orders?customer_id=smoke-check"))
+                                .andExpect(method(HttpMethod.GET))
+                                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+                mockMvc.perform(get("/api/orders").queryParam("customer_id", "smoke-check"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                                .andExpect(content().json("[]"));
+                server.verify();
+        }
 
     @Test
     void preservesTheCheckoutIdempotencyKeyAndBody() throws Exception {

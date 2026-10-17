@@ -37,7 +37,7 @@ variable "kubernetes_version" {
 variable "node_instance_types" {
   description = "Instance types for the managed node group."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["m7i-flex.large"]
 }
 
 variable "node_desired_size" {
@@ -53,13 +53,13 @@ variable "node_min_size" {
 }
 
 variable "node_max_size" {
-  description = "Maximum node count."
+  description = "Maximum node count. Each node consumes EC2 Spot Standard vCPU quota."
   type        = number
-  default     = 4
+  default     = 2
 }
 
 variable "api_allowed_cidrs" {
-  description = "CIDRs allowed to reach the Kubernetes API. Restrict this to your own IP."
+  description = "Administrator CIDRs allowed to reach the tooling and Kubernetes API."
   type        = list(string)
 
   validation {
@@ -72,6 +72,18 @@ variable "api_allowed_cidrs" {
     )
     error_message = "api_allowed_cidrs must contain valid restricted CIDRs; 0.0.0.0/0 is forbidden."
   }
+}
+
+variable "jenkins_instance_type" {
+  description = "Instance type for Jenkins, SonarQube, Nexus, and administration tooling."
+  type        = string
+  default     = "m7i-flex.xlarge"
+}
+
+variable "jenkins_root_volume_size" {
+  description = "Encrypted Jenkins host root volume size in GiB."
+  type        = number
+  default     = 50
 }
 
 variable "db_instance_class" {

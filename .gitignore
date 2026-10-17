@@ -9,6 +9,8 @@ id_rsa*
 *.tfstate
 *.tfstate.*
 *.tfvars
+# Holds the real state bucket name; only the .example is published.
+backend.hcl
 
 # Python
 .venv/
@@ -24,6 +26,7 @@ htmlcov/
 target/
 .m2/
 *.class
+.demo/
 
 # Editors / OS
 .vscode/
