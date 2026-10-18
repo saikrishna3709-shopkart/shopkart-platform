@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    mem_limit: 512m
     environment:
       POSTGRES_USER: shopkart
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -12,81 +13,83 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 30s
 
   catalog-service:
     build: ./services/catalog-service
+    mem_limit: 768m
     environment:
       APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "8001:8000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 90s
 
   inventory-service:
     build: ./services/inventory-service
+    mem_limit: 768m
     environment:
       APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "8002:8000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 90s
 
   payment-service:
     build: ./services/payment-service
+    mem_limit: 768m
     environment:
       APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "8003:8000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 90s
 
   notification-service:
     build: ./services/notification-service
+    mem_limit: 768m
     environment:
       APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
       SPRING_DATASOURCE_USERNAME: shopkart
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "8005:8000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 90s
 
   order-service:
     build: ./services/order-service
+    mem_limit: 768m
     environment:
       APP_REVISION: ${APP_REVISION:-local}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shopkart
@@ -96,8 +99,6 @@ services:
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       PAYMENT_SERVICE_URL: http://payment-service:8000
       NOTIFICATION_SERVICE_URL: http://notification-service:8000
-    ports:
-      - "8004:8000"
     depends_on:
       catalog-service:
         condition: service_healthy
@@ -110,13 +111,15 @@ services:
       notification-service:
         condition: service_started
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 90s
 
   storefront-service:
     build: ./services/storefront-service
+    mem_limit: 512m
     environment:
       APP_REVISION: ${APP_REVISION:-local}
       CATALOG_SERVICE_URL: http://catalog-service:8000
@@ -125,17 +128,18 @@ services:
       PAYMENT_SERVICE_URL: http://payment-service:8000
       NOTIFICATION_SERVICE_URL: http://notification-service:8000
     ports:
-      - "8080:8000"
+      - "${SHOPKART_BIND_ADDRESS:-127.0.0.1}:${SHOPKART_PORT:-8080}:8000"
     depends_on:
       catalog-service:
         condition: service_healthy
       order-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /readyz HTTP/1.0\r\n\r\n' >&3 && grep -q '200' <&3"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 90s
 
 volumes:
   pgdata:

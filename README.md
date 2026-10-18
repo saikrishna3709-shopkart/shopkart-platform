@@ -1,8 +1,16 @@
 # ShopKart
 
-ShopKart is a production-like e-commerce platform built to demonstrate secure,
-observable application delivery on AWS EKS. It is a hands-on portfolio project,
-not a claim that the system has served real production traffic.
+ShopKart is an open-source, six-service Java shopping application. The standalone
+application runs with Docker Compose on a compatible Linux container host:
+a Linux server or VM, or Windows/macOS with a Linux container runtime.
+
+Running the application does not require EC2, an AWS account, IAM, Kubernetes,
+Jenkins, or the other two repositories. Java, Maven, and PostgreSQL are supplied
+inside containers. The AWS infrastructure and Jenkins/GitOps pipeline are
+optional reference integrations, not requirements for using ShopKart.
+
+This is a learning and portfolio application, not a production storefront.
+Payments and notifications are simulated; use synthetic customer details.
 
 ## Repositories
 
@@ -10,33 +18,124 @@ not a claim that the system has served real production traffic.
 - GitOps manifests: https://github.com/saikrishna3709-shopkart/shopkart-manifests
 - Jenkins shared library: https://github.com/saikrishna3709-shopkart/shopkart-jenkins-library
 
-## Prerequisites
+## Run With Docker
 
-Install these and make sure they are on your `PATH`:
+### Requirements
 
-| Tool | Version | Needed for |
-| --- | --- | --- |
-| JDK | 21 | building and running the services |
-| Maven | 3.9+ | build lifecycle and tests |
-| Docker | 24+ | container builds and the Compose demo |
-| Helm | 3.16+ | rendering and validating the chart |
-| Terraform | 1.9+ | provisioning AWS |
-| AWS CLI | v2 | authenticating to AWS |
+- Docker Engine 24+ and Docker Compose v2.20+ with Linux containers enabled.
+- Git to clone this repository, or download and extract its source archive.
+- Internet access for the first build to download base images and dependencies.
+- Recommended allocation for all six services: 4 CPU cores, 8 GiB RAM available
+   to Docker, and 20 GiB free disk. These are planning guidelines, not a tested
+   minimum for every host. A smaller machine can be used for individual services.
 
-Nothing in this project depends on a specific install location. If `java` is not
-on your `PATH`, `JAVA_HOME` is used instead.
-
-## Local Demo
-
-The cross-platform path is Docker Compose, which works on Linux, macOS, and Windows:
+Only this repository is needed for the standalone application:
 
 ```bash
-docker compose up --build
+git clone https://github.com/saikrishna3709-shopkart/shopkart-platform.git
+cd shopkart-platform
 ```
 
-On Windows, `ci/scripts/demo.ps1` is an optional convenience wrapper that runs the
-services directly from packaged JARs with an isolated H2 database, so Docker is
-not required:
+### Configure
+
+Copy `.env.example` to `.env` without replacing an existing configuration.
+
+Linux/macOS:
+
+```bash
+cp -n .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Edit `.env` and set `POSTGRES_PASSWORD` to a long, unique password. The blank
+example intentionally prevents startup until a password is supplied. This is a
+local database password, not a cloud credential. Keep `.env` out of Git.
+
+`SHOPKART_BIND_ADDRESS` defaults to `127.0.0.1` and `SHOPKART_PORT` to `8080`.
+Change the port if another application already uses it. The database and backend
+APIs are reachable only on the Compose network; only the storefront publishes a
+host port. Older instructions using host ports 8001-8005 no longer apply to this
+Compose path.
+
+### Build And Start
+
+Run from the repository directory on any supported host:
+
+```bash
+docker compose config --quiet
+docker compose --parallel 1 build
+docker compose up -d --wait --wait-timeout 240
+docker compose ps
+```
+
+The first command validates configuration without printing the password. Builds
+run sequentially to reduce peak memory usage. Startup waits for the database and
+service readiness checks; a failure must not be treated as a successful launch.
+
+Open `http://localhost:8080`, or the port selected in `.env`, on the Docker host.
+Search the catalog and complete a checkout using synthetic details. If the host
+has `curl`, these checks verify readiness and the catalog proxy:
+
+```bash
+curl -fsS http://127.0.0.1:8080/readyz
+curl -fsS http://127.0.0.1:8080/api/products
+```
+
+For a remote server, use a secure tunnel or an authenticated HTTPS reverse proxy.
+Binding to `0.0.0.0` through `SHOPKART_BIND_ADDRESS` is an explicit opt-in to remote
+access and requires appropriate host firewall rules. This demo has no customer
+authentication and must not be exposed as a real public shop.
+
+### Logs And Stop
+
+```bash
+docker compose logs --tail 100
+docker compose down
+```
+
+Stopping preserves the named PostgreSQL volume. Back it up when its data matters;
+do not add `--volumes` unless you intend to delete the database. Changing
+`POSTGRES_PASSWORD` in `.env` does not change the password of an already-initialized
+database; that requires a matching PostgreSQL password change.
+
+### Configuration Check
+
+Developers with Java 21 and Maven can run the portable configuration test without
+AWS credentials, Helm, or sibling repositories:
+
+```bash
+mvn -B -ntp -f tests/smoke/pom.xml -Dtest=DeploymentConfigurationTest#portableComposeNeedsNoCloudCredentialsAndUsesPortableDefaults test
+```
+
+This checks configuration, not live container execution. Full runtime behavior
+still needs to be checked on the target host; portability is not a claim of
+testing every operating system or hardware combination.
+
+## Optional Development Tools
+
+These tools are needed only for the corresponding workflows, not for Compose:
+
+| Workflow | Additional requirements |
+| --- | --- |
+| Build Java outside Docker | JDK 21 and Maven 3.9+ on `PATH` |
+| Kubernetes/Helm configuration checks | Helm 3.16+ and the manifest repository |
+| Jenkins/GitOps reference pipeline | Jenkins, SonarQube, Nexus, Trivy, the shared-library and manifest repositories, plus registry credentials |
+| Provided AWS infrastructure and pipeline | Terraform 1.9+, AWS CLI v2, an AWS account and reviewed IAM permissions |
+
+The provided Jenkins pipeline publishes images to ECR and is AWS-specific. It is
+not required for standalone execution; another CI provider or registry needs its
+own delivery configuration. A standalone user does not need to provision a
+Jenkins EC2 or fill in Terraform values.
+
+### Optional Windows Demo
+
+With Java 21 and Maven installed, `ci/scripts/demo.ps1` can run the services
+directly from packaged JARs with isolated H2 databases instead of Docker:
 
 ```powershell
 .\ci\scripts\demo.ps1 -Action start
@@ -51,10 +150,12 @@ Use `-Action validate` to check the sibling GitOps and Jenkins repositories with
 See [the demo walkthrough](docs/aws-execution-runbook.md#local-demo) for
 presentation steps, validation commands, limitations, and the separate AWS gate.
 
-## Running This in Your Own AWS Account
+## Optional AWS Deployment
 
-This project is account-agnostic. No AWS account ID, IP address, or state bucket
-name is committed. To run it yourself:
+Skip this section for standalone Docker use. This separate reference deployment
+uses EKS, RDS, ECR, and Jenkins/GitOps. It is account-configurable: actual account
+IDs, IP addresses, and state bucket names belong in untracked configuration.
+To use the AWS integration:
 
 1. Fork all three repositories.
 2. `cp infra/envs/dev/terraform.tfvars.example infra/envs/dev/terraform.tfvars`
@@ -114,8 +215,10 @@ separate setup steps; EKS workers and the other AWS infrastructure are still cre
 - Five live smoke checks cover the storefront, public APIs, checkout, replay,
 	and payment decline; all six revision endpoints are checked before they run.
 - A deliberately incorrect expected revision is rejected by the smoke gate.
-- Four local configuration checks cover ApplicationSet expressions, Helm
-	selectors and revisions, Groovy syntax, and rendered monitoring configuration.
+- The standalone Compose configuration test runs without cloud credentials or
+   sibling repositories. Four additional, optional configuration checks cover
+   ApplicationSet expressions, Helm selectors and revisions, Groovy syntax, and
+   rendered monitoring configuration.
 - Checkout derives a stable saga ID from the idempotency key; inventory and
 	payment reuse it to absorb retries across timeouts and concurrent pods.
 - Notification rows claim their unique event/channel keys before provider calls,
@@ -141,31 +244,22 @@ Nexus stores Java packages and proxies Maven Central. ECR stores runnable OCI
 images. Both are retained because they solve different artifact-management
 problems.
 
-Run one service locally with:
+With Java 21 and Maven installed, build one service outside Docker with:
 
-```powershell
-mvn -f .\services\catalog-service\pom.xml clean verify
+```bash
+mvn -f services/catalog-service/pom.xml clean verify
 ```
 
 Run all six service builds through the Maven reactor with:
 
-```powershell
+```bash
 mvn clean verify
 ```
 
-With Docker available, launch the complete local website and backend stack with:
+## AWS Delivery Flow
 
-```powershell
-Copy-Item .env.example .env
-docker compose up --build
-```
-
-Then open `http://localhost:8080`. The seeded catalog can be searched and added
-to a persistent cart; checkout uses the deterministic mock payment token.
-
-## AWS Deployment
-
-The agreed environment uses an EC2 Jenkins/administration host in `us-east-1`.
+The optional AWS example uses an EC2 Jenkins/administration host and defaults to
+`us-east-1`; its environment-specific inputs remain configurable.
 ShopKart workloads run on EKS and use ECR, RDS, Secrets Manager, and an AWS
 Application Load Balancer. The environment is short-lived: provision, test,
 capture evidence, and destroy.

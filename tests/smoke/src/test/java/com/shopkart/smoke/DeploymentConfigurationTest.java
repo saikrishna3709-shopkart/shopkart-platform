@@ -1,8 +1,10 @@
 package com.shopkart.smoke;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,19 +26,63 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-@EnabledIfSystemProperty(named = "shopkart.manifests", matches = ".+")
 class DeploymentConfigurationTest {
 
     private static final List<String> SERVICES = List.of(
             "catalog-service", "inventory-service", "order-service",
             "payment-service", "notification-service", "storefront-service");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private final Path manifests = Path.of(System.getProperty("shopkart.manifests"));
+    private final Path manifests = Path.of(System.getProperty("shopkart.manifests", "."));
 
     @TempDir
     Path temporaryDirectory;
 
+        @Test
+        void portableComposeNeedsNoCloudCredentialsAndUsesPortableDefaults() throws Exception {
+        Path platform = Path.of(System.getProperty("basedir", ".")).resolve("../..").normalize();
+        JsonNode services = documents(Files.readString(platform.resolve("docker-compose.yml")))
+            .get(0).path("services");
+        assertEquals(SERVICES.size() + 1, services.size());
+        JsonNode postgres = services.path("postgres");
+        assertEquals("postgres:16-alpine", postgres.path("image").asText());
+        assertFalse(postgres.has("ports"), "The database must stay on the Compose network");
+        assertEquals("${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}",
+            postgres.at("/environment/POSTGRES_PASSWORD").asText());
+
+        for (String service : SERVICES) {
+            JsonNode configuration = services.path(service);
+            assertEquals("./services/" + service, configuration.path("build").asText());
+            assertTrue(Files.isRegularFile(platform.resolve("services/" + service + "/Dockerfile")));
+            assertFalse(configuration.has("container_name"), "Container names must be project-scoped");
+            assertFalse(configuration.has("platform"), "Do not force the learner's CPU architecture");
+            assertEquals(service.equals("storefront-service") ? "512m" : "768m",
+                configuration.path("mem_limit").asText());
+            assertEquals("90s", configuration.at("/healthcheck/start_period").asText());
+            assertTrue(configuration.at("/healthcheck/test").toString().contains("/readyz"));
+            configuration.path("environment").fieldNames().forEachRemaining(name -> {
+            assertFalse(name.startsWith("AWS_") || name.startsWith("ECR_")
+                || name.equals("MANIFEST_REPO"), "Compose must not require cloud or CI credentials");
+            });
+            if (!service.equals("storefront-service")) {
+            assertFalse(configuration.has("ports"), "Only the storefront should publish a host port");
+            assertEquals("jdbc:postgresql://postgres:5432/shopkart",
+                configuration.at("/environment/SPRING_DATASOURCE_URL").asText());
+            }
+        }
+        assertEquals("${SHOPKART_BIND_ADDRESS:-127.0.0.1}:${SHOPKART_PORT:-8080}:8000",
+            services.at("/storefront-service/ports/0").asText());
+
+        Properties environment = new Properties();
+        try (Reader reader = Files.newBufferedReader(platform.resolve(".env.example"))) {
+            environment.load(reader);
+        }
+        assertEquals("", environment.getProperty("POSTGRES_PASSWORD"), "Do not ship a shared database password");
+        assertEquals("127.0.0.1", environment.getProperty("SHOPKART_BIND_ADDRESS"));
+        assertEquals("8080", environment.getProperty("SHOPKART_PORT"));
+        }
+
     @Test
+        @EnabledIfSystemProperty(named = "shopkart.manifests", matches = ".+")
     void applicationSetRendersAllSixNamesAndValuesPaths() throws Exception {
         JsonNode applicationSet = documents(Files.readString(manifests.resolve("deploy/argocd/shopkart-dev.yaml")))
                 .stream().filter(document -> "ApplicationSet".equals(document.path("kind").asText()))
@@ -73,6 +120,7 @@ class DeploymentConfigurationTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "shopkart.manifests", matches = ".+")
     void allHelmReleasesExposeTheImageRevisionAndHaveMatchingSelectors() throws Exception {
         for (String service : SERVICES) {
             List<JsonNode> rendered = documents(helm("template", service + "-dev",
@@ -99,6 +147,7 @@ class DeploymentConfigurationTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "shopkart.manifests", matches = ".+")
     void monitoringHasValidReceiversAndNeedsNoPersistentVolumeProvisioner() throws Exception {
         List<JsonNode> rendered = documents(helm("template", "kube-prometheus-stack", "kube-prometheus-stack",
                 "--repo", "https://prometheus-community.github.io/helm-charts", "--version", "82.2.0",
@@ -124,6 +173,7 @@ class DeploymentConfigurationTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "shopkart.manifests", matches = ".+")
     void sharedPipelineParsesAndSuppliesTheExpectedRevision() throws Exception {
         Path library = Path.of(System.getProperty("shopkart.library",
                 manifests.resolveSibling("shopkart-jenkins-library").toString()));
