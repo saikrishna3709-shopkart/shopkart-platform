@@ -7,7 +7,7 @@
 | Region | `us-east-1` |
 | Compute | EC2 for Jenkins/administration; EKS for ShopKart workloads |
 | Data | Private RDS PostgreSQL |
-| Application | Java 21, Spring Boot 3.4, Maven |
+| Application | Java 21, Spring Boot 4.0.8, Maven |
 | Packages | Nexus Maven proxy plus hosted snapshot/release repositories |
 | Images | Private ECR repositories with immutable Git-SHA tags |
 | Delivery | Jenkins CI, separate manifest repository, ArgoCD CD |

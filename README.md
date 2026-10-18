@@ -188,12 +188,17 @@ separate setup steps; EKS workers and the other AWS infrastructure are still cre
 
 ## Application Stack
 
-- Java 21 and Spring Boot 3.4
-- Maven build lifecycle and JUnit 5 tests
+- Java 21 and Spring Boot 4.0.8
+- Maven build lifecycle and JUnit Jupiter tests
 - Spring Data JPA with PostgreSQL; H2 for isolated tests and the local demo
 - JaCoCo coverage gates and Maven SonarQube analysis
 - Nexus Repository for Maven dependency proxying and versioned JAR storage
 - Multi-stage Java containers stored in Amazon ECR
+
+Service POMs override the Boot BOM with Tomcat `11.0.25` and the Jackson `3.1.7`
+BOM for security fixes. Retain these overrides until the selected Boot BOM
+supplies those versions or newer; the Jenkins HIGH/CRITICAL vulnerability gate
+remains enabled.
 
 ## Services
 
