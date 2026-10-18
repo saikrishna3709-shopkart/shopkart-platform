@@ -164,6 +164,29 @@ and public IPv4 from the EC2 console, and the role ARN from IAM > Roles. Use the
 IAM role ARN, not the STS `assumed-role` session ARN returned by
 `aws sts get-caller-identity`, and not an instance-profile ARN.
 
+If Terraform creates the cluster using this same EC2 role, also set this top-level
+value before the first development apply:
+
+```hcl
+admin_role_is_cluster_creator = true
+```
+
+Check `aws sts get-caller-identity` on the deployment host and confirm its assumed
+role corresponds to `existing_admin_server.role_arn`. Environment credentials or
+an AWS profile can override the EC2 instance role. EKS automatically creates an
+admin access entry for the cluster creator; this setting skips the duplicate
+Terraform-managed entry and its policy association. The cluster's automatic
+creator-admin setting remains enabled. The saved plan contains two fewer
+resources than the otherwise identical existing-server plan.
+
+Leave `admin_role_is_cluster_creator = false` when a different identity creates
+the cluster, or when Terraform creates a new administration host. Enabling it
+without `existing_admin_server` is rejected. Keep this choice consistent after
+cluster creation: changing it later can delete an existing admin access entry or
+attempt a duplicate registration. Existing clusters need a reviewed access/state
+migration, not a blind toggle. Regenerate saved plans after configuration changes;
+an old saved plan still contains the old access configuration.
+
 - Existing-server mode skips the entire Jenkins module, including its EC2, EIP,
   security group, and IAM resources. It references the supplied server; it does
   not import, install software on, or manage that server.

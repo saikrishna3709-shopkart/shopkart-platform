@@ -93,6 +93,17 @@ variable "existing_admin_server" {
   }
 }
 
+variable "admin_role_is_cluster_creator" {
+  description = "Reuse EKS automatic creator-admin access instead of creating a duplicate entry. Enable only when existing_admin_server.role_arn is the role creating the cluster."
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !var.admin_role_is_cluster_creator || var.existing_admin_server != null
+    error_message = "admin_role_is_cluster_creator requires existing_admin_server and must only be enabled when its role creates the cluster."
+  }
+}
+
 variable "jenkins_instance_type" {
   description = "Instance type for Jenkins, SonarQube, Nexus, and administration tooling."
   type        = string

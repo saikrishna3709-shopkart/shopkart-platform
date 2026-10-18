@@ -22,6 +22,10 @@ locals {
     public_ip   = module.jenkins[0].public_ip
     role_arn    = module.jenkins[0].role_arn
   }
+
+  eks_admin_principal_arns = var.admin_role_is_cluster_creator ? {} : {
+    jenkins = local.admin_server.role_arn
+  }
 }
 
 module "vpc" {
@@ -76,13 +80,11 @@ module "eks" {
 
   node_instance_types = var.node_instance_types
   # Spot is fine for dev and roughly 70% cheaper.
-  node_capacity_type = "SPOT"
-  node_desired_size  = var.node_desired_size
-  node_min_size      = var.node_min_size
-  node_max_size      = var.node_max_size
-  admin_principal_arns = {
-    jenkins = local.admin_server.role_arn
-  }
+  node_capacity_type   = "SPOT"
+  node_desired_size    = var.node_desired_size
+  node_min_size        = var.node_min_size
+  node_max_size        = var.node_max_size
+  admin_principal_arns = local.eks_admin_principal_arns
 
   public_access_cidrs = distinct(concat(
     var.api_allowed_cidrs,

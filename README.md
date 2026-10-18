@@ -170,7 +170,10 @@ To use the AWS integration:
 
 Already using an EC2 instance as your administration server? Before the first
 development apply, set `existing_admin_server` in your untracked Terraform values
-to skip creating another Jenkins host. Follow the
+to skip creating another Jenkins host. If that same IAM role creates the cluster,
+also set `admin_role_is_cluster_creator = true` to reuse EKS automatic creator
+access instead of registering the role twice. Leave this setting `false` when
+another identity creates the cluster. Follow the
 [existing-server instructions](docs/aws-execution-runbook.md#reusing-an-existing-administration-ec2).
 IAM permissions and Jenkins/SonarQube/Nexus installation on that server remain
 separate setup steps; EKS workers and the other AWS infrastructure are still created.
