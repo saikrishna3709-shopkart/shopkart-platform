@@ -16,6 +16,12 @@ locals {
     "payment-service",
     "storefront-service",
   ]
+
+  admin_server = var.existing_admin_server != null ? var.existing_admin_server : {
+    instance_id = module.jenkins[0].instance_id
+    public_ip   = module.jenkins[0].public_ip
+    role_arn    = module.jenkins[0].role_arn
+  }
 }
 
 module "vpc" {
@@ -42,6 +48,7 @@ module "ecr" {
 
 module "jenkins" {
   source = "../../modules/jenkins"
+  count  = var.existing_admin_server == null ? 1 : 0
 
   name                = local.name
   region              = var.region
@@ -53,6 +60,11 @@ module "jenkins" {
   root_volume_size    = var.jenkins_root_volume_size
 
   tags = local.tags
+}
+
+moved {
+  from = module.jenkins
+  to   = module.jenkins[0]
 }
 
 module "eks" {
@@ -69,12 +81,12 @@ module "eks" {
   node_min_size      = var.node_min_size
   node_max_size      = var.node_max_size
   admin_principal_arns = {
-    jenkins = module.jenkins.role_arn
+    jenkins = local.admin_server.role_arn
   }
 
   public_access_cidrs = distinct(concat(
     var.api_allowed_cidrs,
-    ["${module.jenkins.public_ip}/32"],
+    ["${local.admin_server.public_ip}/32"],
   ))
 
   tags = local.tags

@@ -141,6 +141,52 @@ application builds. The Jenkins library is separate because Jenkins expects
 - Store application credentials in Secrets Manager and synchronize them through
   External Secrets.
 
+## Reusing an Existing Administration EC2
+
+Use this option before the first development-stack apply when you already have
+an EC2 server for administration and CI. Clone the repositories and run the
+deployment commands on that server; running the application on a laptop is not
+required.
+
+In the Git-ignored `infra/envs/dev/terraform.tfvars`, replace
+`existing_admin_server = null` with your server's details:
+
+```hcl
+existing_admin_server = {
+  instance_id = "i-0123456789abcdef0"
+  public_ip   = "198.51.100.25"
+  role_arn    = "arn:aws:iam::123456789012:role/shopkart-main-ec2-role"
+}
+```
+
+These example identifiers are not real deployment values. Get the instance ID
+and public IPv4 from the EC2 console, and the role ARN from IAM > Roles. Use the
+IAM role ARN, not the STS `assumed-role` session ARN returned by
+`aws sts get-caller-identity`, and not an instance-profile ARN.
+
+- Existing-server mode skips the entire Jenkins module, including its EC2, EIP,
+  security group, and IAM resources. It references the supplied server; it does
+  not import, install software on, or manage that server.
+- EKS administration uses the supplied role ARN and allows the supplied public
+  IPv4 `/32` in addition to `api_allowed_cidrs`. A host outside the cluster VPC
+  must be able to reach the public EKS API over HTTPS. If its public IP changes,
+  update the input and the EKS endpoint allowlist before accessing the cluster.
+- Configure the host's security group and install Jenkins, its build agent,
+  SonarQube, and Nexus separately. The tooling URL outputs describe expected
+  endpoints; they do not verify that these tools are installed or running.
+- Give the administration identity the reviewed Terraform provisioning
+  permissions, and configure the CI identity's ECR permissions separately.
+  `AmazonSSMManagedInstanceCore` alone does not grant either set of permissions.
+- EKS, its worker nodes, RDS, ECR, networking, and add-ons are still part of the
+  development stack and incur their normal charges after an approved apply.
+
+Leaving `existing_admin_server = null` keeps the original behavior: Terraform
+creates the administration host and installs its tooling. A `moved` block
+preserves the existing Jenkins module's state address in that default mode.
+Switching an already-managed Jenkins host to existing-server mode can plan its
+destruction; this option is not an automatic state migration or adoption tool.
+Review the real plan before any apply.
+
 ## Mandatory Account Gate
 
 Complete these before the first `terraform apply`:

@@ -67,6 +67,13 @@ name is committed. To run it yourself:
    `__MANIFESTS_REPO_URL__` tokens when you apply the ArgoCD manifests. See that
    repository's README.
 
+Already using an EC2 instance as your administration server? Before the first
+development apply, set `existing_admin_server` in your untracked Terraform values
+to skip creating another Jenkins host. Follow the
+[existing-server instructions](docs/aws-execution-runbook.md#reusing-an-existing-administration-ec2).
+IAM permissions and Jenkins/SonarQube/Nexus installation on that server remain
+separate setup steps; EKS workers and the other AWS infrastructure are still created.
+
 ### Known constraints
 
 - `node_max_size` defaults to `2` because a new AWS account has a 5 vCPU Spot

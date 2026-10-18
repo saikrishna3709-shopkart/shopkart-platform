@@ -74,6 +74,25 @@ variable "api_allowed_cidrs" {
   }
 }
 
+variable "existing_admin_server" {
+  description = "Existing administration EC2 instance to use instead of creating the Jenkins host. Tool installation, IAM permissions, and network access remain externally managed."
+  type = object({
+    instance_id = string
+    public_ip   = string
+    role_arn    = string
+  })
+  default = null
+
+  validation {
+    condition = var.existing_admin_server == null ? true : (
+      can(regex("^i-([0-9a-f]{8}|[0-9a-f]{17})$", var.existing_admin_server.instance_id)) &&
+      can(cidrnetmask("${var.existing_admin_server.public_ip}/32")) &&
+      can(regex("^arn:[^:]+:iam::[0-9]{12}:role/.+$", var.existing_admin_server.role_arn))
+    )
+    error_message = "existing_admin_server must contain an EC2 instance ID, an IPv4 address without a CIDR suffix, and an IAM role ARN (not an STS session or instance-profile ARN)."
+  }
+}
+
 variable "jenkins_instance_type" {
   description = "Instance type for Jenkins, SonarQube, Nexus, and administration tooling."
   type        = string

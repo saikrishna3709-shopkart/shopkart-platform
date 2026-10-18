@@ -34,28 +34,28 @@ output "private_subnet_ids" {
 }
 
 output "jenkins_public_ip" {
-  description = "Stable IP for restricted administration access."
-  value       = module.jenkins.public_ip
+  description = "Public IP of the selected administration host."
+  value       = local.admin_server.public_ip
 }
 
 output "jenkins_url" {
   description = "Restricted Jenkins endpoint."
-  value       = module.jenkins.jenkins_url
+  value       = "http://${local.admin_server.public_ip}:8080"
 }
 
 output "sonarqube_url" {
   description = "Restricted SonarQube endpoint."
-  value       = module.jenkins.sonarqube_url
+  value       = "http://${local.admin_server.public_ip}:9000"
 }
 
 output "nexus_url" {
   description = "Restricted Nexus Repository endpoint."
-  value       = module.jenkins.nexus_url
+  value       = "http://${local.admin_server.public_ip}:8081"
 }
 
 output "jenkins_ssm_command" {
   description = "Session Manager command for the administration host."
-  value       = module.jenkins.ssm_start_session_command
+  value       = "aws ssm start-session --region ${var.region} --target ${local.admin_server.instance_id}"
 }
 
 output "load_balancer_controller_role_arn" {
