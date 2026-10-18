@@ -27,6 +27,10 @@ variables {
 run "plan_with_new_jenkins_role" {
   command = plan
 
+  variables {
+    existing_admin_server = null
+  }
+
   assert {
     condition     = length(module.jenkins) == 1
     error_message = "The default mode must still create the Jenkins administration host."
